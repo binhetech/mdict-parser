@@ -13,7 +13,7 @@ class XiaozhanCrawler(object):
         self.url = "http://top.zhan.com/cihui/%s-%s.html"
         self.countryCh2En = {"美": "US", "英": "UK"}
         self.inflectionCh2En = {"复数": "", "过去式": "", "过去分词": "", "现在分词": "", "第三人称单数": ""}
-        self.items = ["PhoneticSymbols", "ParaPhrases", "Inflections", "Collections"]
+        self.items = ["PhoneticSymbols", "ParaPhrases", "Inflections", "Collocations"]
         self.dictPath = "./output/dict/xiaozhan/"
         if not os.path.exists(self.dictPath):
             os.makedirs(self.dictPath)
@@ -42,7 +42,16 @@ class XiaozhanCrawler(object):
                 except Exception as e:
                     print("Error: {}, {}".format(lexicon, repr(e)))
             # 保存词汇信息
-            self.save_infos(lexicon, result)
+            if not (lexicon in result["Inflections"].values()):
+                isSave = False
+                for k in self.items:
+                    if k in result.keys() and result[k]:
+                        isSave = True
+                        break
+                if isSave:
+                    self.save_infos(lexicon, result)
+            else:
+                print("Warning: {} in Inflections: {}".format(lexicon, result["Inflections"]))
             return result
 
     def get_phonetic_symbol(self, html):
@@ -145,7 +154,7 @@ class XiaozhanCrawler(object):
             out[n] = w.strip()
         return out
 
-    def get_collections(self, html):
+    def get_collocations(self, html):
         """
         固定搭配提取.
         """
@@ -169,12 +178,12 @@ class XiaozhanCrawler(object):
             outs.append({"idiomatic_usage": usage, "chinese": ch, "source": self.source})
         return outs
 
-    def get_Collections(self, html):
+    def get_Collocations(self, html):
         """
         搭配提取.
         """
         # 固定搭配
-        outs = self.get_collections(html)
+        outs = self.get_collocations(html)
         # 习惯用法
         # outs += self.get_idiomatic_usage(html)
         return outs
@@ -190,5 +199,13 @@ class XiaozhanCrawler(object):
 
 if __name__ == "__main__":
     c = XiaozhanCrawler()
-    infos = c.get_infos("book")
-    print(infos)
+    import pandas as pd
+    from multiprocessing import Pool
+
+    words = pd.read_csv(r"D:\work\database\单词-缺失美英音标-汇总2-sorted.csv", header=None)
+    print("words shape={}".format(words.shape))
+
+    p = Pool(16)
+    words = words[0].values
+    for i in range(len(words)):
+        p.apply(c.get_infos, (words[i],))

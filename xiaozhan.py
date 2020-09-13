@@ -190,7 +190,7 @@ class XiaozhanCrawler(object):
 
     def save_infos(self, lexicon, infos):
         with open(self.dictPath + str(lexicon), "w", encoding="utf-8") as f:
-            json.dump(infos, f)
+            json.dump(infos, f, ensure_ascii=False)
 
     def read_infos(self, lexicon):
         with open(self.dictPath + str(lexicon), "r", encoding="utf-8") as f:
